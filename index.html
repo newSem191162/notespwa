@@ -402,23 +402,33 @@
   request.onerror = () => alert("Ошибка БД");
 
   function loadAllNotes() {
-    if (!db) return;
-    const tx = db.transaction(STORE_NAME, "readonly");
-    const store = tx.objectStore(STORE_NAME);
-    store.getAll().onsuccess = (e) => {
-      let notes = e.target.result;
-      notes.sort((a,b) => new Date(b.datetime) - new Date(a.datetime));
-      currentNotes = notes;
-      renderList(notes);
-      if (currentNoteId && notes.find(n => n.id === currentNoteId)) {
-        showNote(notes.find(n => n.id === currentNoteId));
-      } else if (notes.length > 0 && !currentNoteId) {
-        // можно автооткрыть первую
-      } else if (notes.length === 0) {
-        showEmpty();
-      }
-    };
-  }
+  if (!db) return;
+  const tx = db.transaction(STORE_NAME, "readonly");
+  const store = tx.objectStore(STORE_NAME);
+  const getAll = store.getAll();
+  
+  getAll.onsuccess = function(e) {
+    let notes = e.target.result;
+    
+    // СОРТИРОВКА ПО УБЫВАНИЮ (сначала новые)
+    notes.sort(function(a, b) {
+      return new Date(b.datetime) - new Date(a.datetime);
+    });
+    
+    currentNotes = notes;
+    renderList(notes);
+    
+    if (currentNoteId && notes.find(n => n.id === currentNoteId)) {
+      showNote(notes.find(n => n.id === currentNoteId));
+    } else if (notes.length === 0) {
+      showEmpty();
+    }
+  };
+  
+  getAll.onerror = function() {
+    console.error("Ошибка загрузки заметок");
+  };
+}
 
   function renderList(notes) {
     const container = document.getElementById("notesList");
