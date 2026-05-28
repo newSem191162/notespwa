@@ -40,7 +40,7 @@
       margin-top:2px;
     }
     .version-flag::before {
-      content: "Версия 0.1.6.3 • ";
+      content: "Версия 0.1.6.4 • ";
     }
 
     .app-container {
@@ -608,31 +608,39 @@ function importFromJSON() {
         const importedData = JSON.parse(e.target.result);
         
         let notesToImport = [];
+        let formatDetected = false;
         
-        // Проверяем различные форматы
+        // Проверяем формат массового экспорта: { notes: [...] }
         if (importedData.notes && Array.isArray(importedData.notes)) {
-          // Формат массового экспорта: { notes: [...] }
           notesToImport = importedData.notes;
-        } 
+          formatDetected = true;
+        }
+        // Проверяем формат экспорта одной заметки: { type: "single_note", note: {...} }
         else if (importedData.type === "single_note" && importedData.note) {
-          // Формат экспорта одной заметки: { type: "single_note", note: {...} }
           notesToImport = [importedData.note];
+          formatDetected = true;
         }
+        // Проверяем простой массив: [{...}, {...}]
         else if (Array.isArray(importedData)) {
-          // Простой массив заметок
           notesToImport = importedData;
+          formatDetected = true;
         }
+        // Проверяем одиночную заметку без обёртки: { header: "...", text: "..." }
         else if (importedData.header && importedData.text) {
-          // Одна заметка без обёртки
           notesToImport = [importedData];
+          formatDetected = true;
         }
-        else {
-          alert("❌ Неверный формат файла. Поддерживаются:\n- Массив заметок\n- Объект с полем 'notes'\n- Экспорт одной заметки");
+        
+        // Если формат не распознан
+        if (!formatDetected) {
+          alert("❌ Неверный формат файла. Поддерживаются:\n- Массив заметок\n- Объект с полем 'notes'\n- Экспорт одной заметки\n- Одиночный объект заметки");
+          input.value = '';
           return;
         }
         
         if (notesToImport.length === 0) {
           alert("Нет заметок для импорта");
+          input.value = '';
           return;
         }
         
@@ -661,9 +669,13 @@ function importFromJSON() {
           });
           
           tx.oncomplete = () => {
-            alert(`✅ Импортировано: ${imported}\n❌ Пропущено (неверный формат): ${errors}`);
-            loadAllNotes();
-            showEmpty();
+            if (imported > 0) {
+              alert(`✅ Импортировано: ${imported}\n❌ Пропущено (неверный формат): ${errors}`);
+              loadAllNotes();
+              showEmpty();
+            } else {
+              alert("❌ Не удалось импортировать ни одной заметки. Проверьте формат файла.");
+            }
           };
           
           tx.onerror = () => {
@@ -673,11 +685,12 @@ function importFromJSON() {
       } catch (err) {
         alert(`❌ Ошибка парсинга JSON: ${err.message}`);
       }
-      input.value = ''; // очищаем input
+      input.value = '';
     };
     
     reader.onerror = () => {
       alert("Ошибка чтения файла");
+      input.value = '';
     };
     
     reader.readAsText(file);
