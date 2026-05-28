@@ -40,7 +40,7 @@
       margin-top:1px;
     }
     .version-flag::before {
-      content: "Версия 0.1.7.3 • ";
+      content: "Версия 0.1.7.4 • ";
     }
 
     .app-container {
@@ -406,40 +406,6 @@
   };
   request.onerror = () => alert("Ошибка БД");
 
-  /*
-  function loadAllNotes() {
-  if (!db) return;
-  const tx = db.transaction(STORE_NAME, "readonly");
-  const store = tx.objectStore(STORE_NAME);
-  const getAll = store.getAll();
-  
-  getAll.onsuccess = function(e) {
-    let notes = e.target.result;
-    
-    // СОРТИРОВКА ПО УБЫВАНИЮ (сначала новые)
-    //notes.sort(function(a, b) {
-    //  return new Date(b.datetime) - new Date(a.datetime);
-    //});
-    notes.sort(function(a, b) {
-      return new Date(b.datetime.replace(/(\d+).(\d+).(\d+), (\d+):(\d+):(\d+)/, '$3-$2-$1T$4:$5:$6')) - 
-             new Date(a.datetime.replace(/(\d+).(\d+).(\d+), (\d+):(\d+):(\d+)/, '$3-$2-$1T$4:$5:$6'));
-    });
-    
-    currentNotes = notes;
-    renderList(notes);
-    
-    if (currentNoteId && notes.find(n => n.id === currentNoteId)) {
-      showNote(notes.find(n => n.id === currentNoteId));
-    } else if (notes.length === 0) {
-      showEmpty();
-    }
-  };
-  
-  getAll.onerror = function() {
-    console.error("Ошибка загрузки заметок");
-  };
-}
-*/
 function loadAllNotes() {
   if (!db) return;
   const tx = db.transaction(STORE_NAME, "readonly");
@@ -867,7 +833,8 @@ if (searchInput) {
   });
   fab?.addEventListener("click", () => {
     // прокрутить к форме
-    document.getElementById("header").scrollIntoView({ behavior: "smooth" });
+    //document.getElementById("header").scrollIntoView({ behavior: "smooth" });
+    document.getElementById("header").focus();
     if (window.innerWidth <= 768) openSidebar();
   });
   overlay?.addEventListener("click", closeSidebar);
