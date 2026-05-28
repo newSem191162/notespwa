@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#6366f1">
+  <title>Заметки ✨ АДАПТИВНАЯ ВЕРСИЯ 2.0</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* КРУПНЫЙ ИНДИКАТОР ВЕРСИИ */
+    .version-flag {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      color: #ffd700;
+      padding: 6px 14px;
+      border-radius: 40px;
+      font-size: 13px;
+      font-weight: bold;
+      z-index: 1000;
+      font-family: monospace;
+      border: 1px solid rgba(255,215,0,0.5);
+      pointer-events: none;
+    }
+    .version-flag::before {
+      content: "🚀 НОВАЯ ВЕРСИЯ • ";
+    }
+
+    .app-container {
+      display: flex;
+      height: 100%;
+      width: 100%;
+      background: #f3f4f6;
+    }
+
+    /* === САЙДБАР — НОВЫЙ СТИЛЬ === */
+    .sidebar {
+      width: 360px;
+      background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 8px 0 24px rgba(0, 0, 0, 0.15);
+      z-index: 10;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .form-card {
+      padding: 24px 20px;
+      background: rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .form-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #e0e7ff;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .form-title::before {
+      content: "✨";
+      font-size: 1.3rem;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      background: rgba(255,255,255,0.95);
+      transition: all 0.2s;
+      outline: none;
+      margin-bottom: 12px;
+    }
+
+    input:focus, textarea:focus {
+      border-color: #818cf8;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.3);
+      background: white;
+    }
+
+    button {
+      width: 100%;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+      margin-top: 6px;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99,102,241,0.4);
+    }
+
+    .notes-header {
+      padding: 20px 20px 12px 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #9ca3af;
+      background: transparent;
+    }
+
+    .notes-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 12px 20px 12px;
+    }
+
+    /* НОВЫЙ ДИЗАЙН КАРТОЧЕК */
+    .note-item {
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(2px);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .note-item:hover {
+      background: rgba(255,255,255,0.15);
+      transform: translateX(4px);
+    }
+
+    .note-item.active-note {
+      background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2));
+      border-left: 4px solid #818cf8;
+      border-radius: 14px 12px 12px 14px;
+    }
+
+    .note-title {
+      font-weight: 700;
+      font-size: 1rem;
+      color: #f3f4f6;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .note-title::before {
+      content: "📄";
+      font-size: 0.9rem;
+    }
+
+    .note-preview {
+      font-size: 0.8rem;
+      color: #cbd5e1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 6px;
+    }
+
+    .note-date {
+      font-size: 0.7rem;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ОСНОВНАЯ ОБЛАСТЬ — СВЕТЛАЯ */
+    .content-area {
+      flex: 1;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 32px 40px;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      text-align: center;
+      color: #9ca3af;
+    }
+    .empty-icon {
+      font-size: 5rem;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .note-view {
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .note-view h2 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #1f2937, #4b5563);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 12px;
+    }
+
+    .view-meta {
+      margin-bottom: 28px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #e5e7eb;
+      color: #6b7280;
+      font-size: 0.85rem;
+    }
+
+    .view-text {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: #374151;
+      white-space: pre-wrap;
+    }
+
+    .delete-note-btn {
+      background: #fee2e2;
+      color: #dc2626;
+      margin-top: 40px;
+      width: auto;
+      display: inline-flex;
+      padding: 10px 24px;
+      border-radius: 40px;
+      font-weight: 600;
+    }
+
+    /* FAB — ПЛАВАЮЩАЯ КНОПКА ДЛЯ МОБИЛЬНЫХ */
+    .fab {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      border: none;
+      font-size: 28px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+      z-index: 30;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+    }
+    .fab:active {
+      transform: scale(0.92);
+    }
+
+    /* МОБИЛЬНОЕ МЕНЮ */
+    .mobile-menu-btn {
+      display: none;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      margin-bottom: 16px;
+      width: fit-content;
+    }
+    .overlay {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 280px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        transform: translateX(-100%);
+        z-index: 25;
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .content-area {
+        padding: 20px 18px;
+      }
+      .mobile-menu-btn {
+        display: flex;
+      }
+      .overlay.show {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 20;
+      }
+      .fab {
+        display: flex;
+      }
+      .version-flag {
+        font-size: 9px;
+        top: 8px;
+        left: 8px;
+      }
+      .note-view h2 {
+        font-size: 1.6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="version-flag"></div>
+<button class="fab" id="fabBtn">+</button>
+<div class="overlay" id="mobileOverlay"></div>
+
+<div class="app-container">
+  <div class="sidebar" id="sidebar">
+    <div class="form-card">
+      <div class="form-title">Новая заметка</div>
+      <input type="text" id="header" placeholder="Заголовок" autocomplete="off" />
+      <textarea id="text" placeholder="Текст заметки..."></textarea>
+      <button id="saveBtn">💾 Сохранить</button>
+    </div>
+    <div class="notes-header">📋 ВСЕ ЗАМЕТКИ</div>
+    <div class="notes-list" id="notesList"></div>
+  </div>
+
+  <div class="content-area" id="contentArea">
+    <button class="mobile-menu-btn" id="menuToggleBtn">☰ Меню заметок</button>
+    <div id="content" style="flex:1;">
+      <div class="empty-state">
+        <div class="empty-icon">📒</div>
+        <p>Выберите заметку или нажмите +</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const DB_NAME = "notes_db_v2";
+  const STORE_NAME = "notes";
+  let db;
+  let currentNoteId = null;
+  let currentNotes = [];
+
+  const request = indexedDB.open(DB_NAME, 1);
+  request.onupgradeneeded = (e) => {
+    db = e.target.result;
+    if (!db.objectStoreNames.contains(STORE_NAME)) {
+      const store = db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+      store.createIndex("datetime", "datetime");
+    }
+  };
+  request.onsuccess = (e) => {
+    db = e.target.result;
+    loadAllNotes();
+  };
+  request.onerror = () => alert("Ошибка БД");
+
+  function loadAllNotes() {
+    if (!db) return;
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const store = tx.objectStore(STORE_NAME);
+    store.getAll().onsuccess = (e) => {
+      let notes = e.target.result;
+      notes.sort((a,b) => new Date(b.datetime) - new Date(a.datetime));
+      currentNotes = notes;
+      renderList(notes);
+      if (currentNoteId && notes.find(n => n.id === currentNoteId)) {
+        showNote(notes.find(n => n.id === currentNoteId));
+      } else if (notes.length > 0 && !currentNoteId) {
+        // можно автооткрыть первую
+      } else if (notes.length === 0) {
+        showEmpty();
+      }
+    };
+  }
+
+  function renderList(notes) {
+    const container = document.getElementById("notesList");
+    container.innerHTML = "";
+    if (!notes.length) {
+      container.innerHTML = '<div style="padding:24px;text-align:center;color:#9ca3af;">📭 Пусто</div>';
+      return;
+    }
+    notes.forEach(n => {
+      const div = document.createElement("div");
+      div.className = "note-item";
+      if (currentNoteId === n.id) div.classList.add("active-note");
+      const preview = n.text.slice(0, 50) + (n.text.length > 50 ? "…" : "");
+      div.innerHTML = `
+        <div class="note-title">${escapeHtml(n.header)}</div>
+        <div class="note-preview">${escapeHtml(preview)}</div>
+        <div class="note-date">🕐 ${escapeHtml(n.datetime)}</div>
+      `;
+      div.onclick = () => {
+        currentNoteId = n.id;
+        showNote(n);
+        renderList(currentNotes);
+        closeSidebar();
+      };
+      container.appendChild(div);
+    });
+  }
+
+  function showNote(note) {
+    const contentDiv = document.getElementById("content");
+    contentDiv.innerHTML = `
+      <div class="note-view">
+        <h2>📌 ${escapeHtml(note.header)}</h2>
+        <div class="view-meta">📅 ${escapeHtml(note.datetime)}</div>
+        <div class="view-text">${escapeHtml(note.text).replace(/\n/g, '<br>')}</div>
+        <button class="delete-note-btn" id="delNoteBtn">🗑 Удалить заметку</button>
+      </div>
+    `;
+    document.getElementById("delNoteBtn")?.addEventListener("click", () => {
+      if (confirm("Удалить?")) deleteNote(note.id);
+    });
+  }
+
+  function showEmpty() {
+    document.getElementById("content").innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📘</div>
+        <p>Здесь будут ваши заметки</p>
+      </div>
+    `;
+    currentNoteId = null;
+  }
+
+  function deleteNote(id) {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).delete(id);
+    tx.oncomplete = () => {
+      if (currentNoteId === id) currentNoteId = null;
+      loadAllNotes();
+      showEmpty();
+    };
+  }
+
+  document.getElementById("saveBtn").onclick = () => {
+    const header = document.getElementById("header").value.trim();
+    const text = document.getElementById("text").value.trim();
+    if (!header || !text) return alert("Заполните оба поля");
+    const note = {
+      datetime: new Date().toLocaleString('ru-RU'),
+      header, text
+    };
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).add(note);
+    tx.oncomplete = () => {
+      document.getElementById("header").value = "";
+      document.getElementById("text").value = "";
+      loadAllNotes();
+      closeSidebar();
+    };
+  };
+
+  function escapeHtml(s) {
+    if (!s) return "";
+    return s.replace(/[&<>]/g, (m) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m]));
+  }
+
+  // мобильные контролы
+  const sidebar = document.getElementById("sidebar");
+  const toggle = document.getElementById("menuToggleBtn");
+  const overlay = document.getElementById("mobileOverlay");
+  const fab = document.getElementById("fabBtn");
+
+  function closeSidebar() {
+    if (window.innerWidth <= 768) {
+      sidebar.classList.remove("open");
+      overlay.classList.remove("show");
+    }
+  }
+  function openSidebar() {
+    if (window.innerWidth <= 768) {
+      sidebar.classList.add("open");
+      overlay.classList.add("show");
+    }
+  }
+  toggle?.addEventListener("click", () => {
+    if (sidebar.classList.contains("open")) closeSidebar();
+    else openSidebar();
+  });
+  fab?.addEventListener("click", () => {
+    // прокрутить к форме
+    document.getElementById("header").scrollIntoView({ behavior: "smooth" });
+    if (window.innerWidth <= 768) openSidebar();
+  });
+  overlay?.addEventListener("click", closeSidebar);
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 768) {
+      sidebar.classList.remove("open");
+      overlay.classList.remove("show");
+    }
+  });
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/service-worker.js").catch(e => console.log(e));
+    });
+  }
+</script>
+</body>
+</html>
