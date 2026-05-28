@@ -440,20 +440,56 @@
     });
   }
 
-  function showNote(note) {
-    const contentDiv = document.getElementById("content");
-    contentDiv.innerHTML = `
-      <div class="note-view">
-        <h2>📌 ${escapeHtml(note.header)}</h2>
-        <div class="view-meta">📅 ${escapeHtml(note.datetime)}</div>
-        <div class="view-text">${escapeHtml(note.text).replace(/\n/g, '<br>')}</div>
+function showNote(note) {
+  const contentDiv = document.getElementById("content");
+  contentDiv.innerHTML = `
+    <div class="note-view">
+      <h2>📌 ${escapeHtml(note.header)}</h2>
+      <div class="view-meta">📅 ${escapeHtml(note.datetime)}</div>
+      <div class="view-text">${escapeHtml(note.text).replace(/\n/g, '<br>')}</div>
+      <div style="display: flex; gap: 12px; margin-top: 32px; flex-wrap: wrap;">
         <button class="delete-note-btn" id="delNoteBtn">🗑 Удалить заметку</button>
+        <button class="delete-note-btn" id="ntfyBtn" style="background: #e0e7ff; color: #4f46e5;">🔔 Отправить в ntfy</button>
       </div>
-    `;
-    document.getElementById("delNoteBtn")?.addEventListener("click", () => {
-      if (confirm("Удалить?")) deleteNote(note.id);
-    });
-  }
+    </div>
+  `;
+  document.getElementById("delNoteBtn")?.addEventListener("click", () => {
+    if (confirm("Удалить?")) deleteNote(note.id);
+  });
+  document.getElementById("ntfyBtn")?.addEventListener("click", () => {
+    sendToNtfy(note);
+  });
+}
+
+function sendToNtfy(note) {
+  const topic = "notealert"; //prompt("Введите тему ntfy (например: mynotes):\n\nБесплатно на ntfy.sh", "my-notes");
+  if (!topic) return;
+  
+  const server = "https://ntfy.sh"; //prompt("Сервер ntfy (оставьте пустым для ntfy.sh):", "https://ntfy.sh");
+  const url = server ? `${server}/${topic}` : `https://ntfy.sh/${topic}`;
+  
+  const message = `${note.header}\n\n${note.text.substring(0, 200)}${note.text.length > 200 ? '…' : ''}`;
+  
+  fetch(url, {
+    method: 'POST',
+    body: message,
+    headers: {
+      'Title': note.header,
+      'Tags': 'memo,notebook',
+      'Priority': 'default'
+    }
+  })
+  .then(response => {
+    if (response.ok) {
+      alert(`✅ Отправлено в ${url}`);
+    } else {
+      alert(`❌ Ошибка: ${response.status}`);
+    }
+  })
+  .catch(err => {
+    alert(`❌ Не удалось отправить: ${err.message}`);
+  });
+}
 
   function showEmpty() {
     document.getElementById("content").innerHTML = `
