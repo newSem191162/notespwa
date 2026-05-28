@@ -40,7 +40,7 @@
       margin-top:2px;
     }
     .version-flag::before {
-      content: "Версия 0.1.3 • ";
+      content: "Версия 0.1.4 • ";
     }
 
     .app-container {
@@ -72,6 +72,7 @@
       font-weight: 600;
       color: #e0e7ff;
       margin-bottom: 16px;
+      margin-top: 4px;
       display: flex;
       align-items: center;
       gap: 10px;
@@ -411,8 +412,12 @@
     let notes = e.target.result;
     
     // СОРТИРОВКА ПО УБЫВАНИЮ (сначала новые)
+    //notes.sort(function(a, b) {
+    //  return new Date(b.datetime) - new Date(a.datetime);
+    //});
     notes.sort(function(a, b) {
-      return new Date(b.datetime) - new Date(a.datetime);
+      return new Date(b.datetime.replace(/(\d+).(\d+).(\d+), (\d+):(\d+):(\d+)/, '$3-$2-$1T$4:$5:$6')) - 
+             new Date(a.datetime.replace(/(\d+).(\d+).(\d+), (\d+):(\d+):(\d+)/, '$3-$2-$1T$4:$5:$6'));
     });
     
     currentNotes = notes;
