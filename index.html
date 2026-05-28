@@ -40,7 +40,7 @@
       margin-top:2px;
     }
     .version-flag::before {
-      content: "Версия 0.1.5 • ";
+      content: "Версия 0.1.6.1 • ";
     }
 
     .app-container {
@@ -592,8 +592,8 @@ function exportSingleNote(note) {
   
   alert(`✅ Заметка "${note.header}" экспортирована`);
 }
-  
- function importFromJSON() {
+
+function importFromJSON() {
   const input = document.getElementById("importFileInput");
   input.click();
   
@@ -607,12 +607,26 @@ function exportSingleNote(note) {
         const importedData = JSON.parse(e.target.result);
         
         let notesToImport = [];
+        
+        // Проверяем различные форматы
         if (importedData.notes && Array.isArray(importedData.notes)) {
+          // Формат массового экспорта: { notes: [...] }
           notesToImport = importedData.notes;
-        } else if (Array.isArray(importedData)) {
+        } 
+        else if (importedData.type === "single_note" && importedData.note) {
+          // Формат экспорта одной заметки: { type: "single_note", note: {...} }
+          notesToImport = [importedData.note];
+        }
+        else if (Array.isArray(importedData)) {
+          // Простой массив заметок
           notesToImport = importedData;
-        } else {
-          alert("❌ Неверный формат файла. Ожидается массив заметок или объект с полем 'notes'");
+        }
+        else if (importedData.header && importedData.text) {
+          // Одна заметка без обёртки
+          notesToImport = [importedData];
+        }
+        else {
+          alert("❌ Неверный формат файла. Поддерживаются:\n- Массив заметок\n- Объект с полем 'notes'\n- Экспорт одной заметки");
           return;
         }
         
@@ -629,6 +643,7 @@ function exportSingleNote(note) {
           let errors = 0;
           
           notesToImport.forEach(note => {
+            // Проверяем обязательные поля
             if (note.header && note.text) {
               const newNote = {
                 header: note.header,
@@ -657,7 +672,7 @@ function exportSingleNote(note) {
       } catch (err) {
         alert(`❌ Ошибка парсинга JSON: ${err.message}`);
       }
-      input.value = '';
+      input.value = ''; // очищаем input
     };
     
     reader.onerror = () => {
@@ -666,7 +681,8 @@ function exportSingleNote(note) {
     
     reader.readAsText(file);
   };
-} 
+}
+ 
 // Добавьте обработчик (найдите место, где есть другие onclick, и добавьте эту строку)
 document.getElementById("exportJsonBtn").onclick = exportToJSON;
 document.getElementById("importJsonBtn").onclick = importFromJSON;
