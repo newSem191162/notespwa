@@ -358,7 +358,10 @@
       <textarea id="text" placeholder="Текст заметки..."></textarea>
       <button id="saveBtn">💾 Сохранить</button>
     </div>
-    <div class="notes-header">📋 ВСЕ ЗАМЕТКИ</div>
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 20px 12px 20px;">
+  <div class="notes-header" style="padding: 0;">📋 ВСЕ ЗАМЕТКИ</div>
+    <button id="exportJsonBtn" style="width: auto; padding: 6px 12px; background: #10b981; font-size: 12px; margin: 0; border-radius: 8px;">📥 JSON</button>
+  </div>
     <div class="notes-list" id="notesList"></div>
   </div>
 
@@ -491,6 +494,57 @@ function sendToNtfy(note) {
   });
 }
 
+  function exportToJSON() {
+  if (!db) {
+    alert("База данных не готова");
+    return;
+  }
+  
+  const tx = db.transaction(STORE_NAME, "readonly");
+  const store = tx.objectStore(STORE_NAME);
+  const getAll = store.getAll();
+  
+  getAll.onsuccess = function() {
+    const notes = getAll.result;
+    
+    if (notes.length === 0) {
+      alert("Нет заметок для экспорта");
+      return;
+    }
+    
+    const exportData = {
+      exportDate: new Date().toLocaleString('ru-RU'),
+      totalNotes: notes.length,
+      notes: notes.map(note => ({
+        id: note.id,
+        header: note.header,
+        text: note.text,
+        datetime: note.datetime
+      }))
+    };
+    
+    const jsonStr = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `notes_backup_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    alert(`✅ Экспортировано ${notes.length} заметок`);
+  };
+  
+  getAll.onerror = function() {
+    alert("Ошибка при чтении базы данных");
+  };
+}
+
+// Добавьте обработчик (найдите место, где есть другие onclick, и добавьте эту строку)
+document.getElementById("exportJsonBtn").onclick = exportToJSON;
+  
   function showEmpty() {
     document.getElementById("content").innerHTML = `
       <div class="empty-state">
