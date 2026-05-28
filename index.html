@@ -363,7 +363,7 @@
    <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 20px 12px 20px; flex-wrap: wrap; gap: 8px;">
   <div class="notes-header" style="padding: 0;">📋 ВСЕ ЗАМЕТКИ</div>
   <div style="display: flex; gap: 8px;">
-    <button id="exportJsonBtn" style="width: auto; padding: 6px 12px; background: #10b981; font-size: 12px; margin: 0; border-radius: 8px;">📥 Экспорт</button>
+    <button id="exportJsonBtn" style="width: auto; padding: 6px 12px; background: #10b981; font-size: 12px; margin: 0; border-radius: 8px;">📥 Экспорт всех</button>
     <button id="importJsonBtn" style="width: auto; padding: 6px 12px; background: #f59e0b; font-size: 12px; margin: 0; border-radius: 8px;">📤 Импорт</button>
   </div>
 </div>
@@ -472,6 +472,7 @@ function showNote(note) {
       <div style="display: flex; gap: 12px; margin-top: 32px; flex-wrap: wrap;">
         <button class="delete-note-btn" id="delNoteBtn">🗑 Удалить заметку</button>
         <button class="delete-note-btn" id="ntfyBtn" style="background: #e0e7ff; color: #4f46e5;">🔔 Отправить в ntfy</button>
+        <button class="delete-note-btn" id="exportOneBtn" style="background: #10b981; color: white;">💾 Экспорт заметки</button>
       </div>
     </div>
   `;
@@ -480,6 +481,9 @@ function showNote(note) {
   });
   document.getElementById("ntfyBtn")?.addEventListener("click", () => {
     sendToNtfy(note);
+  });
+  document.getElementById("exportOneBtn")?.addEventListener("click", () => {
+    exportSingleNote(note);
   });
 }
 
@@ -513,7 +517,7 @@ function sendToNtfy(note) {
   });
 }
 
-  function exportToJSON() {
+function exportToJSON() {
   if (!db) {
     alert("База данных не готова");
     return;
@@ -561,6 +565,34 @@ function sendToNtfy(note) {
   };
 }
 
+function exportSingleNote(note) {
+  const exportData = {
+    exportDate: new Date().toLocaleString('ru-RU'),
+    type: "single_note",
+    note: {
+      id: note.id,
+      header: note.header,
+      text: note.text,
+      datetime: note.datetime
+    }
+  };
+  
+  const jsonStr = JSON.stringify(exportData, null, 2);
+  const blob = new Blob([jsonStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  // Очищаем заголовок от спецсимволов для имени файла
+  const safeHeader = note.header.replace(/[^a-zа-яё0-9]/gi, '_').substring(0, 30);
+  a.download = `note_${safeHeader}_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  alert(`✅ Заметка "${note.header}" экспортирована`);
+}
+  
  function importFromJSON() {
   const input = document.getElementById("importFileInput");
   input.click();
