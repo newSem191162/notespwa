@@ -358,10 +358,13 @@
       <textarea id="text" placeholder="Текст заметки..."></textarea>
       <button id="saveBtn">💾 Сохранить</button>
     </div>
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 20px 12px 20px;">
+   <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 20px 12px 20px; flex-wrap: wrap; gap: 8px;">
   <div class="notes-header" style="padding: 0;">📋 ВСЕ ЗАМЕТКИ</div>
-    <button id="exportJsonBtn" style="width: auto; padding: 6px 12px; background: #10b981; font-size: 12px; margin: 0; border-radius: 8px;">📥 JSON</button>
+  <div style="display: flex; gap: 8px;">
+    <button id="exportJsonBtn" style="width: auto; padding: 6px 12px; background: #10b981; font-size: 12px; margin: 0; border-radius: 8px;">📥 Экспорт</button>
+    <button id="importJsonBtn" style="width: auto; padding: 6px 12px; background: #f59e0b; font-size: 12px; margin: 0; border-radius: 8px;">📤 Импорт</button>
   </div>
+</div>
     <div class="notes-list" id="notesList"></div>
   </div>
 
@@ -542,8 +545,83 @@ function sendToNtfy(note) {
   };
 }
 
+ function importFromJSON() {
+  const input = document.getElementById("importFileInput");
+  input.click();
+  
+  input.onchange = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const importedData = JSON.parse(e.target.result);
+        
+        let notesToImport = [];
+        if (importedData.notes && Array.isArray(importedData.notes)) {
+          notesToImport = importedData.notes;
+        } else if (Array.isArray(importedData)) {
+          notesToImport = importedData;
+        } else {
+          alert("❌ Неверный формат файла. Ожидается массив заметок или объект с полем 'notes'");
+          return;
+        }
+        
+        if (notesToImport.length === 0) {
+          alert("Нет заметок для импорта");
+          return;
+        }
+        
+        if (confirm(`Найдено ${notesToImport.length} заметок. Импортировать? Существующие заметки останутся.`)) {
+          const tx = db.transaction(STORE_NAME, "readwrite");
+          const store = tx.objectStore(STORE_NAME);
+          
+          let imported = 0;
+          let errors = 0;
+          
+          notesToImport.forEach(note => {
+            if (note.header && note.text) {
+              const newNote = {
+                header: note.header,
+                text: note.text,
+                datetime: note.datetime || new Date().toLocaleString('ru-RU')
+              };
+              
+              const request = store.add(newNote);
+              request.onsuccess = () => imported++;
+              request.onerror = () => errors++;
+            } else {
+              errors++;
+            }
+          });
+          
+          tx.oncomplete = () => {
+            alert(`✅ Импортировано: ${imported}\n❌ Пропущено (неверный формат): ${errors}`);
+            loadAllNotes();
+            showEmpty();
+          };
+          
+          tx.onerror = () => {
+            alert("Ошибка при сохранении в базу данных");
+          };
+        }
+      } catch (err) {
+        alert(`❌ Ошибка парсинга JSON: ${err.message}`);
+      }
+      input.value = '';
+    };
+    
+    reader.onerror = () => {
+      alert("Ошибка чтения файла");
+    };
+    
+    reader.readAsText(file);
+  };
+} 
 // Добавьте обработчик (найдите место, где есть другие onclick, и добавьте эту строку)
 document.getElementById("exportJsonBtn").onclick = exportToJSON;
+document.getElementById("importJsonBtn").onclick = importFromJSON;
   
   function showEmpty() {
     document.getElementById("content").innerHTML = `
@@ -629,5 +707,6 @@ document.getElementById("exportJsonBtn").onclick = exportToJSON;
     });
   }
 </script>
+  <input type="file" id="importFileInput" accept=".json" style="display: none;">
 </body>
 </html>
