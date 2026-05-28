@@ -40,7 +40,7 @@
       margin-top:2px;
     }
     .version-flag::before {
-      content: "Версия 0.1.6.4 • ";
+      content: "Версия 0.1.6.5 • ";
     }
 
     .app-container {
@@ -362,12 +362,15 @@
       <button id="saveBtn">💾 Сохранить</button>
     </div>
    <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 20px 12px 20px; flex-wrap: wrap; gap: 8px;">
-  <div class="notes-header" style="padding: 0;">📋 ВСЕ ЗАМЕТКИ</div>
-  <div style="display: flex; gap: 8px;">
-    <button id="exportJsonBtn" style="width: auto; padding: 6px 12px; background: #10b981; font-size: 12px; margin: 0; border-radius: 8px;">📥 Экспорт всех</button>
-    <button id="importJsonBtn" style="width: auto; padding: 6px 12px; background: #f59e0b; font-size: 12px; margin: 0; border-radius: 8px;">📤 Импорт</button>
+    <div class="notes-header" style="padding: 0;">📋 ВСЕ ЗАМЕТКИ</div>
+    <div style="display: flex; gap: 8px;">
+      <button id="exportJsonBtn" style="width: auto; padding: 6px 12px; background: #10b981; font-size: 12px; margin: 0; border-radius: 8px;">📥 Экспорт всех</button>
+      <button id="importJsonBtn" style="width: auto; padding: 6px 12px; background: #f59e0b; font-size: 12px; margin: 0; border-radius: 8px;">📤 Импорт</button>
+    </div>
+    <div style="padding: 8px 20px 16px 20px;">
+      <input type="text" id="searchInput" placeholder="🔍 Поиск по заголовку или тексту..." style="width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc;">
+    </div>   
   </div>
-</div>
     <div class="notes-list" id="notesList"></div>
   </div>
 
@@ -403,6 +406,7 @@
   };
   request.onerror = () => alert("Ошибка БД");
 
+  /*
   function loadAllNotes() {
   if (!db) return;
   const tx = db.transaction(STORE_NAME, "readonly");
@@ -435,34 +439,105 @@
     console.error("Ошибка загрузки заметок");
   };
 }
-
-  function renderList(notes) {
-    const container = document.getElementById("notesList");
-    container.innerHTML = "";
-    if (!notes.length) {
-      container.innerHTML = '<div style="padding:24px;text-align:center;color:#9ca3af;">📭 Пусто</div>';
-      return;
-    }
-    notes.forEach(n => {
-      const div = document.createElement("div");
-      div.className = "note-item";
-      if (currentNoteId === n.id) div.classList.add("active-note");
-      const preview = n.text.slice(0, 50) + (n.text.length > 50 ? "…" : "");
-      div.innerHTML = `
-        <div class="note-title">${escapeHtml(n.header)}</div>
-        <div class="note-preview">${escapeHtml(preview)}</div>
-        <div class="note-date">🕐 ${escapeHtml(n.datetime)}</div>
-      `;
-      div.onclick = () => {
-        currentNoteId = n.id;
-        showNote(n);
-        renderList(currentNotes);
-        closeSidebar();
-      };
-      container.appendChild(div);
+*/
+function loadAllNotes() {
+  if (!db) return;
+  const tx = db.transaction(STORE_NAME, "readonly");
+  const store = tx.objectStore(STORE_NAME);
+  const getAll = store.getAll();
+  
+  getAll.onsuccess = function(e) {
+    let notes = e.target.result;
+    notes.sort(function(a, b) {
+      return new Date(b.datetime.replace(/(\d+).(\d+).(\d+), (\d+):(\d+):(\d+)/, '$3-$2-$1T$4:$5:$6')) - 
+             new Date(a.datetime.replace(/(\d+).(\d+).(\d+), (\d+):(\d+):(\d+)/, '$3-$2-$1T$4:$5:$6'));
     });
-  }
+    currentNotes = notes;
+    renderList(notes);
+    
+    if (currentNoteId && notes.find(n => n.id === currentNoteId)) {
+      showNote(notes.find(n => n.id === currentNoteId));
+    } else if (notes.length === 0) {
+      showEmpty();
+    }
+  };
+}
+  
+function renderList(notes) {
+  currentNotes = notes;
+  renderFilteredList();
+}
+//=========
+  // Фильтрация заметок по поисковому запросу
+let currentSearchQuery = "";
 
+function filterNotes(notes, query) {
+  if (!query || query.trim() === "") {
+    return notes;
+  }
+  
+  const lowerQuery = query.toLowerCase().trim();
+  return notes.filter(note => {
+    return note.header.toLowerCase().includes(lowerQuery) || 
+           note.text.toLowerCase().includes(lowerQuery);
+  });
+}
+
+function renderFilteredList() {
+  if (!currentNotes) return;
+  
+  let filtered = filterNotes(currentNotes, currentSearchQuery);
+  // Сортируем от новых к старым
+  filtered.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
+  
+  const container = document.getElementById("notesList");
+  container.innerHTML = "";
+  
+  if (!filtered.length) {
+    container.innerHTML = '<div style="padding:24px;text-align:center;color:#9ca3af;">🔍 Ничего не найдено</div>';
+    return;
+  }
+  
+  filtered.forEach(note => {
+    const div = document.createElement("div");
+    div.className = "note-item";
+    if (currentNoteId === note.id) div.classList.add("active-note");
+    
+    // Подсвечиваем совпадения в заголовке и превью
+    const highlightedTitle = highlightText(note.header, currentSearchQuery);
+    const previewText = note.text.length > 55 ? note.text.substring(0, 55) + "…" : note.text;
+    const highlightedPreview = highlightText(previewText, currentSearchQuery);
+    
+    div.innerHTML = `
+      <div class="note-title">${highlightedTitle}</div>
+      <div class="note-preview">${highlightedPreview}</div>
+      <div class="note-date">🕐 ${escapeHtml(note.datetime)}</div>
+    `;
+    div.onclick = () => {
+      currentNoteId = note.id;
+      showNote(note);
+      renderFilteredList(); // обновляем подсветку активной заметки
+      closeSidebar();
+    };
+    container.appendChild(div);
+  });
+}
+
+// Функция подсветки текста
+function highlightText(text, query) {
+  if (!query || query.trim() === "") {
+    return escapeHtml(text);
+  }
+  
+  const escapedText = escapeHtml(text);
+  const escapedQuery = escapeHtml(query.toLowerCase().trim());
+  
+  // Регулярное выражение для поиска (без учёта регистра)
+  const regex = new RegExp(`(${escapedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return escapedText.replace(regex, '<mark style="background: #fef08a; color: #1e293b; border-radius: 4px; padding: 0 2px;">$1</mark>');
+}
+//========  
+  
 function showNote(note) {
   const contentDiv = document.getElementById("content");
   contentDiv.innerHTML = `
@@ -700,6 +775,30 @@ function importFromJSON() {
 // Добавьте обработчик (найдите место, где есть другие onclick, и добавьте эту строку)
 document.getElementById("exportJsonBtn").onclick = exportToJSON;
 document.getElementById("importJsonBtn").onclick = importFromJSON;
+
+//=============
+// Поиск с задержкой (debounce)
+let searchTimeout;
+const searchInput = document.getElementById("searchInput");
+if (searchInput) {
+  searchInput.addEventListener("input", function(e) {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      currentSearchQuery = e.target.value;
+      renderFilteredList();
+      
+      // Если текущая открытая заметка не соответствует фильтру, очищаем просмотр
+      if (currentNoteId) {
+        const stillVisible = filterNotes(currentNotes, currentSearchQuery).some(n => n.id === currentNoteId);
+        if (!stillVisible) {
+          currentNoteId = null;
+          showEmpty();
+        }
+      }
+    }, 300); // задержка 300ms для улучшения производительности
+  });
+}
+//============
   
   function showEmpty() {
     document.getElementById("content").innerHTML = `
